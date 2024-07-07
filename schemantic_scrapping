@@ -1,0 +1,57 @@
+import asyncio
+from dotenv import load_dotenv
+import os
+from langchain_openai import ChatOpenAI
+from langchain.chains import create_extraction_chain
+from web_scrapper import run_playwright
+
+load_dotenv()
+openai_key = os.getenv("openai_key")
+
+schema = {
+    "properties": {
+        "name": {"type": "string"},
+        "ingredients": {"type": "string"},
+        "features": {"type": "string"},
+        "use case": {"type": "string"},
+        
+    },
+    "required": ["name", "ingredients", "features"],
+}
+
+async def scrape_and_extract(url):
+    site_data = await run_playwright(url)
+    llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo", openai_api_key=openai_key)
+    extraction_chain = create_extraction_chain(schema, llm)
+    result = extraction_chain.run(site_data)
+    return result
+
+async def main():
+    urls = [
+        "https://organictraveller.store/collections/facewash/products/miracle-jelly-facewash",
+        "https://organictraveller.store/collections/toner/products/golden-hour-glow-tonic",
+        "https://organictraveller.store/products/regrowth-hair-oil",
+        "https://organictraveller.store/products/super-c-vitamin-c-serum-1",
+        "https://organictraveller.store/products/brightening-moisturizer",
+        "https://organictraveller.store/products/lip-pigmentation-treatment",
+        "https://organictraveller.store/products/glow-spf",
+        "https://organictraveller.store/products/b3-pro-pore-erasing-serum",
+        "https://organictraveller.store/products/quench",
+        "https://organictraveller.store/products/rapid-repair-skin-repairing-moisturiser-100-ml",
+        "https://organictraveller.store/products/rapid-repair-moisturiser",
+        "https://organictraveller.store/products/pink-ribbon-travel-pouch",
+        "https://organictraveller.store/products/regrowth-hair-oil",
+    ]
+
+    results = []
+    for url in urls:
+        result = await scrape_and_extract(url)
+        results.append(result)
+
+    # Write results to a text file
+    with open('/Users/mhmh/Desktop/p2/my-skin-care/ex.txt', 'w', encoding='utf-8') as f:
+        for result in results:
+            f.write(str(result) + '\n')
+
+# Execute async function main
+asyncio.run(main())
